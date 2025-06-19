@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { JwtPayload } from './types/jwt-payload.interface';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -15,15 +16,17 @@ export class AuthService {
   async validateUser(email: string, pass: string) {
     const user = await this.usersService.findByEmail(email);
     if (user && (await bcrypt.compare(pass, user.password))) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
       return result;
     }
     return null;
   }
 
-  login(user: Pick<User, 'id' | 'email' | 'role'>) {
+  login(user: Pick<User, 'id' | 'email' | 'username' | 'role'>) {
     const payload: JwtPayload = {
       sub: user.id,
+      username: user.username,
       email: user.email,
       role: user.role,
     };
@@ -32,9 +35,13 @@ export class AuthService {
     };
   }
 
-  async register(email: string, password: string) {
-    const hashed = await bcrypt.hash(password, 10);
-    const user = await this.usersService.create(email, hashed);
+  async register(dto: CreateUserDto) {
+    const hashed = await bcrypt.hash(dto.password, 10);
+    const user = await this.usersService.create(
+      dto.email,
+      dto.username,
+      hashed,
+    );
     return this.login(user);
   }
 }
