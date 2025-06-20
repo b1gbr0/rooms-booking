@@ -1,13 +1,29 @@
+import { Role, User } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
+import { PartialBy } from '../common/utils';
 import { PrismaService } from '../prisma/prisma.service';
-import { User } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { email } });
+  static readonly safeUserSelect = {
+    id: true,
+    email: true,
+    username: true,
+    role: true,
+  };
+
+  async findByEmail(
+    email: string,
+    includePassword: boolean = false,
+  ): Promise<PartialBy<User, 'password'> | null> {
+    return await this.prisma.user.findUnique({
+      where: { email },
+      select: includePassword
+        ? { ...UsersService.safeUserSelect, password: true }
+        : UsersService.safeUserSelect,
+    });
   }
 
   async create(
@@ -20,7 +36,7 @@ export class UsersService {
         email,
         username,
         password: hashedPassword,
-        role: 'USER',
+        role: Role.USER,
       },
     });
   }

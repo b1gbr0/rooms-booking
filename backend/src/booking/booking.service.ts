@@ -1,6 +1,18 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { Prisma, Role } from '@prisma/client';
+import { UsersService } from '../users/users.service';
+
+interface BookingFilterOptions {
+  from?: Date;
+  to?: Date;
+}
 
 @Injectable()
 export class BookingService {
@@ -42,7 +54,7 @@ export class BookingService {
       );
     }
 
-    return this.prisma.booking.create({
+    return await this.prisma.booking.create({
       data: {
         userId,
         roomId,
@@ -52,18 +64,69 @@ export class BookingService {
     });
   }
 
-  findBookingsByUser(userId: string) {
-    return this.prisma.booking.findMany({
-      where: { userId },
+  async findBookingsByUser(userId: string, filter: BookingFilterOptions = {}) {
+    return await this.prisma.booking.findMany({
+      where: { ...this.makeFilter(filter), userId },
       include: { room: true },
       orderBy: { startTime: 'asc' },
     });
   }
 
-  findAll() {
-    return this.prisma.booking.findMany({
-      include: { user: true, room: true },
+  async findAll(filter: BookingFilterOptions = {}) {
+    return await this.prisma.booking.findMany({
+      where: this.makeFilter(filter),
+      include: {
+        user: {
+          select: UsersService.safeUserSelect,
+        },
+        room: true,
+      },
       orderBy: { startTime: 'asc' },
     });
+  }
+
+  async deleteBooking(user: { userId: string; role: Role }, bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    const isOwner = booking.userId === user.userId;
+    const isAdmin = user.role === Role.ADMIN;
+
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenException(
+        'You are not allowed to delete this booking',
+      );
+    }
+
+    await this.prisma.booking.delete({
+      where: { id: bookingId },
+    });
+
+    return { message: 'Booking cancelled successfully' };
+  }
+
+  private makeFilter(filter: BookingFilterOptions): Prisma.BookingWhereInput {
+    const where: Prisma.BookingWhereInput = {};
+    if (
+      filter.from &&
+      filter.to &&
+      new Date(filter.to) < new Date(filter.from)
+    ) {
+      const temp = filter.from;
+      filter.from = filter.to;
+      filter.to = temp;
+    }
+    if (filter.from) {
+      where.startTime = { gte: new Date(filter.from) };
+    }
+    if (filter.to) {
+      where.endTime = { lte: new Date(filter.to) };
+    }
+    return where;
   }
 }

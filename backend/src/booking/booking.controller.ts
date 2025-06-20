@@ -1,4 +1,13 @@
-import { Body, Controller, Post, Get, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Get,
+  Req,
+  Delete,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { Roles } from '../auth/roles.decorator';
@@ -10,18 +19,26 @@ export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
   @Post()
-  create(@Req() req: Request, @Body() dto: CreateBookingDto) {
-    return this.bookingService.createBooking(req.user!.userId, dto);
+  async create(@Req() req: Request, @Body() dto: CreateBookingDto) {
+    return await this.bookingService.createBooking(req.user!.userId, dto);
   }
 
   @Get('me')
-  findMyBookings(@Req() req: Request) {
-    return this.bookingService.findBookingsByUser(req.user!.userId);
+  async findMyBookings(@Req() req: Request) {
+    return await this.bookingService.findBookingsByUser(req.user!.userId);
   }
 
   @Get()
   @Roles(Role.ADMIN)
-  findAll() {
-    return this.bookingService.findAll();
+  async findAll(@Query('from') from?: string, @Query('to') to?: string) {
+    return await this.bookingService.findAll({
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined,
+    });
+  }
+
+  @Delete(':id')
+  async delete(@Req() req: Request, @Param('id') id: string) {
+    return await this.bookingService.deleteBooking(req.user!, id);
   }
 }

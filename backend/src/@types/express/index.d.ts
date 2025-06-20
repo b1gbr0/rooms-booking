@@ -5,6 +5,7 @@ declare global {
     interface User {
       userId: string;
       email: string;
+      username: string;
       role: Role;
     }
   }
