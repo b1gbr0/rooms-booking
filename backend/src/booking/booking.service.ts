@@ -19,21 +19,31 @@ export class BookingService {
   constructor(private prisma: PrismaService) {}
 
   async createBooking(userId: string, dto: CreateBookingDto) {
-    const { name, startTime, endTime } = dto;
+    let roomId = dto.roomId;
+    const { roomName, startTime, endTime } = dto;
+
+    // Validate room existence
+    if (!roomId && !roomName) {
+      throw new BadRequestException(
+        'Either roomId or roomName must be provided',
+      );
+    }
+
+    if (!roomId && roomName) {
+      const room = await this.prisma.room.findUnique({
+        where: { name: dto.roomName },
+      });
+      if (!room) {
+        throw new NotFoundException(
+          `Room with name "${dto.roomName}" not found`,
+        );
+      }
+      roomId = room.id;
+    }
 
     if (new Date(startTime) >= new Date(endTime)) {
       throw new BadRequestException('End time must be after start time');
     }
-
-    // Validate room existence
-    const roomId = await this.prisma.room
-      .findUnique({ where: { name } })
-      .then((room) => {
-        if (!room) {
-          throw new BadRequestException('Room does not exist');
-        }
-        return room.id;
-      });
 
     // Check for overlapping bookings
     const overlap = await this.prisma.booking.findFirst({
@@ -57,7 +67,7 @@ export class BookingService {
     return await this.prisma.booking.create({
       data: {
         userId,
-        roomId,
+        roomId: roomId ?? '',
         startTime: new Date(startTime),
         endTime: new Date(endTime),
       },
