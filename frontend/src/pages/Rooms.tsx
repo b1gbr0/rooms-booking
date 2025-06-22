@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { api } from '../lib/api';
 import { BookRoomModal } from '../components/BookRoomModal';
 import { useAuth } from '../context/AuthContext';
-import type { Room, JwtPayload } from '../types'
+import type { Room, JwtPayload } from '../types';
 import { AddRoomModal } from '../components/AddRoomModal';
 import { jwtDecode } from 'jwt-decode';
 
@@ -13,17 +13,17 @@ export function Rooms() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadRooms();
-  });
-
-  const loadRooms = () => {
+  const loadRooms = useCallback(() => {
     if (!token) return;
 
     api<Room[]>('/rooms', {}, token)
       .then(setRooms)
       .catch((err) => setError(err.message || 'Failed to load rooms'));
-  };
+  }, [token]);
+
+  useEffect(() => {
+    loadRooms();
+  }, [loadRooms]);
 
   const isAdmin = (() => {
     try {
@@ -57,8 +57,25 @@ export function Rooms() {
                 <h5 className="card-title">{room.name}</h5>
                 <p className="card-text">
                   Capacity: {room.capacity} <br />
-                  Location: {room.location}
+                  Location: {room.location || '—'}
                 </p>
+
+                {room.freeSlots.length > 0 ? (
+                  <div>
+                    <h6>Free Slots:</h6>
+                    <ul className="list-unstyled small">
+                      {room.freeSlots.slice(0, 3).map((slot, index) => (
+                        <li key={index}>
+                          {new Date(slot.start).toLocaleString()}{slot.end ? ` - ${new Date(slot.end).toLocaleString()}` : ''}
+                        </li>
+                      ))}
+                      {room.freeSlots.length > 3 && <li>…and more</li>}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-muted">No free slots</p>
+                )}
+
                 <button
                   className="btn btn-primary"
                   onClick={() => setSelectedRoomId(room.id)}
@@ -69,6 +86,7 @@ export function Rooms() {
             </div>
           </div>
         ))}
+
       </div>
 
       {selectedRoomId && (
@@ -81,9 +99,7 @@ export function Rooms() {
       {showAddModal && (
         <AddRoomModal
           onClose={() => setShowAddModal(false)}
-          onRoomAdded={() => {
-            loadRooms();
-          }}
+          onRoomAdded={loadRooms}
         />
       )}
     </div>

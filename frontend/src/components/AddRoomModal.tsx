@@ -13,7 +13,6 @@ export function AddRoomModal({ onClose, onRoomAdded }: Props) {
   const [capacity, setCapacity] = useState<number>(1);
   const [location, setLocation] = useState('');
   const [error, setError] = useState('');
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,6 +91,8 @@ export function AddRoomModal({ onClose, onRoomAdded }: Props) {
               </button>
             </div>
           </form>
+
+          {success && <div className="alert alert-success">Room added successfully</div>}
         </div>
       </div>
     </div>

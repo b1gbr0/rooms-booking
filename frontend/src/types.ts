@@ -3,6 +3,7 @@ export interface Room {
   name: string;
   capacity: number;
   location: string;
+  freeSlots: { start: Date, end?: Date }[]
 }
 
 export interface JwtPayload {
