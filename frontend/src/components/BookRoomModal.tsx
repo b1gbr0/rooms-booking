@@ -27,8 +27,8 @@ export function BookRoomModal({ roomId, onClose }: Props) {
           method: 'POST',
           body: JSON.stringify({
             roomId,
-            startTime,
-            endTime,
+            startTime: new Date(startTime).toISOString(),
+            endTime: new Date(endTime).toISOString(),
           }),
         },
         token
@@ -43,6 +43,18 @@ export function BookRoomModal({ roomId, onClose }: Props) {
         setError('Booking failed');
       }
     }
+  };
+
+  const toDatetimeLocal = (date: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   return (
@@ -62,6 +74,7 @@ export function BookRoomModal({ roomId, onClose }: Props) {
                 <label className="form-label">Start Time</label>
                 <input
                   type="datetime-local"
+                  min={toDatetimeLocal(new Date())}
                   className="form-control"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
@@ -73,6 +86,7 @@ export function BookRoomModal({ roomId, onClose }: Props) {
                 <label className="form-label">End Time</label>
                 <input
                   type="datetime-local"
+                  min={toDatetimeLocal(new Date())}
                   className="form-control"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}

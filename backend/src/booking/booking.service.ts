@@ -45,6 +45,10 @@ export class BookingService {
       throw new BadRequestException('End time must be after start time');
     }
 
+    if (new Date(startTime) < new Date()) {
+      throw new BadRequestException('Cannot create booking in the past');
+    }
+
     // Check for overlapping bookings
     const overlap = await this.prisma.booking.findFirst({
       where: {
