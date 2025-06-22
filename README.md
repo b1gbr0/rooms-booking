@@ -65,10 +65,10 @@ docker-compose --env-file .env up --build
 
 - В базе автоматически создаётся администратор:
 
-  - Email: admin@example.com
+  - Email: `admin@example.com`
 
   - Пароль: qwerty123
 
 ## API Документация
 
-Доступна по адресу: http://<backend-host>:<port>/doc
+Доступна по адресу: `http://<backend-host>:<port>/doc`
